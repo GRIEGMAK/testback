@@ -1,0 +1,189 @@
+// jwt.strategy.ts
+import { Strategy, ExtractJwt } from 'passport-jwt';
+import { PassportStrategy } from '@nestjs/passport';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtPayload } from './jwt-payload.interface'; // Define this interface
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: 'your-secret-key', // Replace with your secret key
+    });
+  }
+
+  async validate(payload: JwtPayload) {
+    // Check if the user exists and is valid, you can retrieve user information from the database here
+    // If the user is not found or not valid, throw an UnauthorizedException
+    return user;
+  }
+}
+
+Create a JWT Module: Create a module to manage JWT, including the JWT strategy. You can use the JwtModule from @nestjs/jwt to configure JWT.
+
+typescript
+Copy code
+// jwt.module.ts
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from './jwt.strategy'; // Import your JWT strategy
+
+@Module({
+  imports: [
+    JwtModule.register({
+      secret: 'your-secret-key',
+      signOptions: { expiresIn: '1h' }, // Adjust token expiration as needed
+    }),
+  ],
+  providers: [JwtStrategy],
+  exports: [JwtStrategy, JwtModule],
+})
+export class JwtAuthModule {}
+Authentication Module: Create an authentication module where you define authentication related controllers and services. For example, you can have a AuthController with endpoints for login and registration.
+
+typescript
+Copy code
+// auth.module.ts
+import { Module } from '@nestjs/common';
+import { JwtAuthModule } from './jwt/jwt.module';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+
+@Module({
+  imports: [JwtAuthModule],
+  providers: [AuthService],
+  controllers: [AuthController],
+})
+export class AuthModule {}
+Auth Controller: In the AuthController, implement the endpoints for user registration and login. Use the @UseGuards(AuthGuard()) decorator on routes that require authentication.
+
+typescript
+Copy code
+// auth.controller.ts
+import { Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { AuthService } from './auth.service';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Post('login')
+  @UseGuards(AuthGuard())
+  async login(@Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @Post('register')
+  async register(@Request() req) {
+    return this.authService.register(req.body);
+  }
+}
+
+
+Auth Service: Implement the AuthService to handle user registration and login. Use bcrypt to hash and verify passwords.
+
+Create a JWT on Login: In your login route, generate a JWT token when the login is successful and return it to the client.
+
+Protect Routes: Use the @UseGuards(AuthGuard()) decorator to protect routes that require authentication.
+
+That's a high-level overview of how to implement user authorization via email and password with JWT in NestJS. You'll need to fill in the implementation details, including user registration and database interactions in the AuthService. Be sure to replace 'your-secret-key' with your actual secret key.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+In the context of NestJS and database relationships, the "one to many" relationship typically refers to a situation where one entity has a relationship with multiple entities in another entity. This can be represented as a parent-child relationship, where one entity is the parent, and the other entities are its children. Let's break down how to work with a "one to many" relationship in NestJS.
+
+For this example, let's consider a simple use case where you have a User entity that can have multiple Post entities. Each user can create several posts.
+
+Here are the key steps to set up a "one to many" relationship between User and Post entities in NestJS:
+
+Create Entities:
+
+Define the User and Post entities. For instance:
+
+typescript
+Copy code
+// user.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Post } from './post.entity';
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  username: string;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+}
+typescript
+Copy code
+// post.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { User } from './user.entity';
+
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @ManyToOne(() => User, (user) => user.posts)
+  user: User;
+}
+In the code above, we use decorators like @OneToMany and @ManyToOne to establish the "one to many" relationship between User and Post entities. A user can have multiple posts, and each post belongs to a single user.
+
+Database Setup:
+
+Ensure that you have a database connection and tables set up to store the User and Post entities. You can use TypeORM or another ORM of your choice for database management.
+
+Service and Controller:
+
+Create services and controllers for both User and Post entities to handle CRUD operations. You may also want to implement methods to create and retrieve posts for a specific user.
+
+API Endpoints:
+
+Define API endpoints in your controllers to interact with the "one to many" relationship. For example, you can create an endpoint to create a post for a specific user, and another to retrieve all posts for a given user.
+
+NestJS Module:
+
+Organize your entities, services, controllers, and other modules within a NestJS module. You can import the TypeOrmModule.forFeature([User, Post]) in your module to ensure that your entities are accessible within the module.
+
+Route Protection:
+
+If needed, implement route protection using authentication and authorization mechanisms to ensure that only authorized users can create or access posts.
+
+By following these steps, you can set up a "one to many" relationship in NestJS between the User and Post entities, allowing users to create and manage multiple posts associated with their accounts.
